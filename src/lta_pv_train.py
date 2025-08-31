@@ -2,11 +2,8 @@
 
 import pandas as pd
 import yaml
-import json
 import requests
-from urllib.parse import urlparse
 import zipfile
-import io
 from datetime import datetime as dt
 
 
@@ -18,13 +15,20 @@ with open(conf['api']['lta_key']) as k:
 
 
 class PVTrain:
-    
+    '''
+    Create class to perform API call and download passenger volume by train 
+    stations data from LTA DataMall 
+    '''
+
     def __init__(self, date):
         self.date = date
 
 
     def api_call(self):
-        
+        '''
+        API call to LTA DataMall to get URL for the data.
+        '''
+
         url = conf['api']['lta_url']
         url_suffix = 'ltaodataservice/PV/Train'
         
@@ -45,7 +49,10 @@ class PVTrain:
         return dl_link
 
     def download_zip(self, dl_link):
-        
+        '''
+        Download zip file from URL and deposit file into incoming dir.
+        '''
+
         yyyymmdd = dt.strftime(self.date, '%Y%m%d')
         zip_path = f'{conf['incoming']['pv_train']}zip/pv_train_{yyyymmdd}.zip'
 
