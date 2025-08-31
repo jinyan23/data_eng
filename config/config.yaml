@@ -2,6 +2,9 @@ api:
     lta_url: 'https://datamall2.mytransport.sg/'
     lta_key: '../keys/lta_key.txt'
 
+incoming:
+    pv_train: '../incoming/pv_train/'
+
 database:
     # for mariadb-server
 logging:
