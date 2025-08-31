@@ -1,0 +1,8 @@
+api:
+    lta_url: 'https://datamall2.mytransport.sg/'
+    lta_key: '../keys/lta_key.txt'
+
+database:
+    # for mariadb-server
+logging:
+    # for script logging
