@@ -4,7 +4,7 @@ This is a private repository to set up and showcase a data pipeline and architec
 ## Services to Include
 - CI/CD process
   - CI with GitHub Actions
-  - Copuled with unit testing
+  - Coupled with unit testing
     - With pytest and pylint
 - SQL dump into mariadb
   - Hosting of mariadb-server on local linux env
