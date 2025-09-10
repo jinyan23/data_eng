@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
 
-import pandas as pd
 import yaml
 import requests
-import zipfile
 from datetime import datetime as dt
+import util
 
 
 with open('config/config.yaml', 'r') as f:
@@ -65,9 +64,30 @@ class PVTrain:
         
         return zip_response
 
+    def unzip_to_incoming(file_dir: str, destination_dir: str):
+        '''
+        
+        '''
+        file_dir = file_dir
+        destination_dir = destination_dir
+
+        try:
+            util.unzip_file(file_dir, destination_dir)
+            print('Successfully unzip file.')
+        except:
+            print('Error in unzipping file.')
+
+        
+
+
 if __name__=='__main__':
     
     instance = PVTrain(dt.today().date())
 
-    dl_link = instance.api_call()
-    zip_response = instance.download_zip(dl_link = dl_link)
+    # dl_link = instance.api_call()
+    # zip_response = instance.download_zip(dl_link = dl_link)
+    
+    file_dir = '../incoming/pv_train/zip/pv_train_20250910.zip'
+    destination_dir = '../incoming/pv_train/csv/'
+    PVTrain.unzip_to_incoming(file_dir=file_dir,
+                              destination_dir=destination_dir)
