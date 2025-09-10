@@ -76,18 +76,3 @@ class PVTrain:
             print('Successfully unzip file.')
         except:
             print('Error in unzipping file.')
-
-        
-
-
-if __name__=='__main__':
-    
-    instance = PVTrain(dt.today().date())
-
-    # dl_link = instance.api_call()
-    # zip_response = instance.download_zip(dl_link = dl_link)
-    
-    file_dir = '../incoming/pv_train/zip/pv_train_20250910.zip'
-    destination_dir = '../incoming/pv_train/csv/'
-    PVTrain.unzip_to_incoming(file_dir=file_dir,
-                              destination_dir=destination_dir)
