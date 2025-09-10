@@ -1,11 +1,10 @@
 #!/usr/bin/env python3
 
-import pandas as pd
 import yaml
 import requests
-import zipfile
 from datetime import datetime as dt
-
+import util
+import shutil
 
 with open('config/config.yaml', 'r') as f:
     conf = yaml.safe_load(f)
@@ -65,9 +64,30 @@ class PVTrain:
         
         return zip_response
 
-if __name__=='__main__':
-    
-    instance = PVTrain(dt.today().date())
+    def unzip_to_incoming(file_dir: str, 
+                          destination_dir: str, 
+                          archive_dir: str | bool = False):
+        '''
+        Function unzips the PV Train file and store the csv into the csv file.
+        It then moves the zip file into the archive folder.
+        
+        Parameters
+        ----------
+        file_dir: file path
+        destination_dir: destination folder path
+        archive_dir: takes archive folder path or if not archiving, False
+        '''
+        file_dir = file_dir
+        destination_dir = destination_dir
+        archive_dir = archive_dir
 
-    dl_link = instance.api_call()
-    zip_response = instance.download_zip(dl_link = dl_link)
+        try:
+            util.unzip_file(file_dir, destination_dir)
+            print('Successfully unzip file.')
+            if archive_dir != False:
+                shutil.move(file_dir, archive_dir)
+                print('Successfully move zipped file into archive.')
+        except:
+            print('Error in unzipping file.')
+
+        
