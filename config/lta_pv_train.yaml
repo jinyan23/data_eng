@@ -1,0 +1,26 @@
+config_pv_train:
+    backfill: False
+    yyyymm: '202507'
+    file_prefix: '../incoming/pv_train/csv/transport_node_train'
+    delimiter: ','
+    col_pd: {
+        'YEAR_MONTH': 'str',
+        'DAY_TYPE': 'str',
+        'TIME_PER_HOUR': 'int64',
+        'PT_TYPE': 'str',
+        'PT_CODE': 'str',
+        'TOTAL_TAP_IN_VOLUME': 'int64',
+        'TOTAL_TAP_OUT_VOLUME': 'int64'
+    }
+config_db_tbl:
+    db: 'transport'
+    tbl: 'r_pv_train'
+    tbl_col: {
+        'YEAR_MONTH': 'year_month',
+        'DAY_TYPE': 'day_type',
+        'TIME_PER_HOUR': 'time_per_hour',
+        'PT_TYPE': 'pt_type',
+        'PT_CODE': 'pt_code',
+        'TOTAL_TAP_IN_VOLUME': 'total_tap_in_volume',
+        'TOTAL_TAP_OUT_VOLUME': 'total_tap_out_volume'
+    }

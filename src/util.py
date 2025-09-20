@@ -1,5 +1,27 @@
+#!/usr/bin/env python3
+
+'''Utility Functions'''
+
 import zipfile
 import os
+import yaml
+from datetime import datetime as dt
+
+def load_config(config_file: str):
+    '''
+    Utiliy function to load the requested config files.
+
+    Parameters
+    ----------
+        config_fig (str): config file name 
+    '''
+
+    config_path = os.path.expanduser(f'~/data_eng/config/{config_file}')
+
+    with open(f'{config_path}', 'r', encoding='utf-8') as f:
+        conf = yaml.safe_load(f)
+
+    return conf
 
 def unzip_file(file_dir, destination_dir):
     '''
@@ -13,15 +35,24 @@ def unzip_file(file_dir, destination_dir):
     try:
         with zipfile.ZipFile(file_dir, 'r') as zip_obj:
             for file_name in zip_obj.namelist():
+
                 # Check for path traversal
                 abs_path = os.path.abspath(os.path.join(destination_dir, file_name))
                 if not abs_path.startswith(os.path.abspath(destination_dir)):
-                    raise Exception(f'Unsafe file detected in zip: {file_name}')
-                else:
-                    # Extract all files to destination directory
-                    zip_obj.extractall(destination_dir)
-                    print(f'All files saved in: {destination_dir}')
-        
+                    raise ValueError(f'Unsafe file detected in zip: {file_name}')
+
+                # Extract all files to destination directory
+                zip_obj.extractall(destination_dir)
+                print(f'All files saved in: {destination_dir}')
+
     except zipfile.BadZipFile:
         print(f'Error: {file_dir} is not a valid zip file.')
 
+def time_now():
+    '''
+    Returns time now for logging of script execution.
+    '''
+    time_now_dt = dt.strftime(dt.now(), '%Y-%m-%d %H:%M:%S')
+    time_now_str = time_now_dt + '\t'
+
+    return time_now_str
