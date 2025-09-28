@@ -5,5 +5,5 @@ api:
 incoming:
     pv_train: '~/incoming/pv_train/'
     
-logging:
-    # for script logging
+logs:
+    import: '~/logs/import.log'
