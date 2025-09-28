@@ -13,7 +13,6 @@ config_pv_train:
         'TOTAL_TAP_OUT_VOLUME': 'int64'
     }
 config_db_tbl:
-    db: 'transport'
     tbl: 'r_pv_train'
     tbl_col: {
         'YEAR_MONTH': 'year_month',

@@ -1,15 +1,17 @@
 #!/usr/bin/env python3
 
 '''Data Import Functions'''
-
+import os
 import mysql.connector
 from mysql.connector import Error
-from util import load_config, time_now
+from util import load_config
+from util import UDLogger
 
 # everytime the import.py executes, all new csv will be ingested into db
 # it also creates a log that tracks which csv if ingested, and row count added
 
-config_db = load_config('config_db.yaml')
+ud_logger = UDLogger(filename='import.log', name=__name__)
+logger = ud_logger.create_logger()
 
 class DataPipe:
     '''
@@ -33,9 +35,10 @@ class DataPipe:
                 password=self.password,
                 database=self.database
             )
-            print(f'{time_now()} Connection to mariadb {self.database} successful.')
+            logger.info(f'Connection to mariadb {self.database} successful.')
         except Error as e:
-            print(f'{time_now()} The error {e} occurred.')
+            logger.error(f'The error {e} occurred.')
+            raise
 
         return connection
 
@@ -51,7 +54,7 @@ class DataPipe:
         connection = self.create_connection()
 
         # create the insert statement
-        table = f'{config_db_tbl['db']}.{config_db_tbl['tbl']}'
+        table = f'{self.database}.{config_db_tbl['tbl']}'
         table_col_names = ', '.join(f'`{i}`' for i in config_db_tbl['tbl_col'].values())
         placeholders = ', '.join(['%s'] * len(config_db_tbl['tbl_col'].values()))
         stmt = f'INSERT INTO {table} ({table_col_names}) VALUES ({placeholders});'
@@ -60,19 +63,20 @@ class DataPipe:
             cursor = connection.cursor()
             cursor.executemany(stmt, data)
             connection.commit()
-            print(f'{time_now()} Insert statement ran successfully for {table}.')
+            logger.info(f'Insert statement executed successfully for {table}.')
         except Error as e:
-            print(f'{time_now()} The error {e} occurred.')
+            logger.error(f'The error {e} occurred.')
+            raise
 
 
 
 if __name__=='__main__':
 
     sqlpipe = DataPipe(
-        hostname=config_db['hostname'],
-        username=config_db['username'],
-        password=config_db['password'],
-        database='transport'
+        hostname=os.environ['DB_HOST'],
+        username=os.environ['DB_USER'],
+        password=os.environ['DB_PASS'],
+        database=os.environ['DB_NAME']
     )
 
     # sqlpipe.load_db()

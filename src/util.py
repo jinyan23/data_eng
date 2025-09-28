@@ -105,11 +105,3 @@ class UDLogger:
         logger.addHandler(info_handler)
 
         return logger
-
-
-ud_logger = UDLogger(filename='import.log', name=__name__)
-
-logger = ud_logger.create_logger()
-
-logger.info('look at my message!')
-logger.error('look at my error!')
