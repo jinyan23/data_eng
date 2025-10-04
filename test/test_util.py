@@ -2,7 +2,7 @@
 
 from src import util
 import zipfile
-from pathlib import Path
+
 
 def test_unzip_file(tmp_path):
     '''
@@ -15,14 +15,14 @@ def test_unzip_file(tmp_path):
 
     csv_path = tmp_path / f'{test_name}.csv'
     zip_path = tmp_path / f'{test_name}.zip'
-    des_path = tmp_path / f'destination'
+    des_path = tmp_path / 'destination'
 
     with open(csv_path, 'w') as f:
         f.write(mock_data)
-    
+
     with zipfile.ZipFile(zip_path, 'w') as f:
         f.write(csv_path, arcname=f'{test_name}.csv')
-    
+
     # Function to test
     util.unzip_file(zip_path, des_path)
 
@@ -30,4 +30,3 @@ def test_unzip_file(tmp_path):
     extracted_path = des_path / f'{test_name}.csv'
     assert extracted_path.exists()
     assert extracted_path.read_text() == mock_data
-
