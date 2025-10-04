@@ -1,27 +1,32 @@
 #!/usr/bin/env python3
 
+import os
 import yaml
 import requests
 from datetime import datetime as dt
-import util
 import shutil
+
+import util
+from util import UDLogger
 
 with open('config/config.yaml', 'r') as f:
     conf = yaml.safe_load(f)
 
-with open(conf['api']['lta_key']) as k:
+with open(os.path.expanduser(conf['api']['lta_key'])) as k:
     key = k.readlines()[0]
+
+ud_logger = UDLogger(filename='api.log', name=__name__)
+logger = ud_logger.create_logger()
 
 
 class PVTrain:
     '''
-    Create class to perform API call and download passenger volume by train 
-    stations data from LTA DataMall 
+    Create class to perform API call and download passenger volume by train
+    stations data from LTA DataMall
     '''
 
     def __init__(self, date):
         self.date = date
-
 
     def api_call(self):
         '''
@@ -30,64 +35,72 @@ class PVTrain:
 
         url = conf['api']['lta_url']
         url_suffix = 'ltaodataservice/PV/Train'
-        
+
         headers = {
             'AccountKey': key,
             'accept': 'application/json'
         }
 
-        response = requests.get(url + url_suffix, headers=headers, stream=True)
-        
-        if response.ok:
-            data = response.json()
+        resp = requests.get(url + url_suffix, headers=headers, stream=True)
+
+        if resp.ok:
+            data = resp.json()
             dl_link = data['value'][0]['Link']
-            print(dl_link)
+            logger.info(f'{url_suffix}: {resp.status_code}')
         else:
-            print('Error:', response.status_code, response.text)
-        
+            err = f'Error: {resp.status_code}, {resp.text}'
+            logger.error(f'{err}')
+            raise Exception(f'{err}')
+
         return dl_link
 
     def download_zip(self, dl_link):
         '''
         Download zip file from URL and deposit file into incoming dir.
+
+        Parameters
+        ----------
+            dl_link: url link to the download
         '''
 
         yyyymmdd = dt.strftime(self.date, '%Y%m%d')
         zip_path = f'{conf['incoming']['pv_train']}zip/pv_train_{yyyymmdd}.zip'
 
-        zip_response = requests.get(dl_link)
+        zip_resp = requests.get(dl_link)
 
-        with open(zip_path, "wb") as f:
-            for chunk in zip_response.iter_content(chunk_size=8192):
-                if chunk:
-                    f.write(chunk)
-        
-        return zip_response
+        if zip_resp.ok:
+            with util.safe_open(zip_path, 'wb') as f:
+                for chunk in zip_resp.iter_content(chunk_size=8192):
+                    if chunk:
+                        f.write(chunk)
+            logger.info(f'Successfully written zip file to {zip_path}')
+        else:
+            err = f'Error: {zip_resp.status_code}, {zip_resp.text}'
+            logger.error(f'{err}')
+            raise Exception(f'{err}')
 
-    def unzip_to_incoming(file_dir: str, 
-                          destination_dir: str, 
+    def unzip_to_incoming(file_dir: str,
+                          out_dir: str,
                           archive_dir: str | bool = False):
         '''
         Function unzips the PV Train file and store the csv into the csv file.
         It then moves the zip file into the archive folder.
-        
+
         Parameters
         ----------
-        file_dir: file path
-        destination_dir: destination folder path
-        archive_dir: takes archive folder path or if not archiving, False
+            file_dir: file path
+            out_dir: destination folder path
+            archive_dir: takes archive folder path or if not archiving, False
         '''
         file_dir = file_dir
-        destination_dir = destination_dir
+        out_dir = out_dir
         archive_dir = archive_dir
 
         try:
-            util.unzip_file(file_dir, destination_dir)
-            print('Successfully unzip file.')
-            if archive_dir != False:
+            util.unzip_file(file_dir, out_dir)
+            logger.info('Successfully unzip file.')
+            if archive_dir is not False:
                 shutil.move(file_dir, archive_dir)
-                print('Successfully move zipped file into archive.')
-        except:
-            print('Error in unzipping file.')
-
-        
+                logger.info('Successfully move zipped file into archive.')
+        except Exception as e:
+            logger.error(f'The error {e} occurred.')

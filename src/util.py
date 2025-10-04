@@ -8,13 +8,29 @@ import os
 import yaml
 from datetime import datetime as dt
 
-def load_config(config_file: str):
+
+def safe_open(path: str, mode: str):
     '''
-    Utiliy function to load the requested config files.
+    Utility function to expand ~/ home directory safely
 
     Parameters
     ----------
-        config_fig (str): config file name 
+        path (str): path to the file
+        mode (str): 'wb' or 'r' mode used to open the file
+    '''
+
+    full_path = os.path.expanduser(path)
+
+    return open(full_path, mode)
+
+
+def load_config(config_file: str):
+    '''
+    Utility function to load the requested config files.
+
+    Parameters
+    ----------
+        config_file (str): config file name
     '''
 
     config_path = os.path.expanduser(f'~/data_eng/config/{config_file}')
@@ -24,30 +40,32 @@ def load_config(config_file: str):
 
     return conf
 
-def unzip_file(file_dir, destination_dir):
+
+def unzip_file(file_dir, dir_out):
     '''
     Utility function to unzip and save a file in a specified dir.
 
     Parameters
     ----------
         file_dir (str): path to the zip file
-        destination_dir (str): path to the destination directory
+        dir_out (str): path to the destination directory
     '''
     try:
         with zipfile.ZipFile(file_dir, 'r') as zip_obj:
-            for file_name in zip_obj.namelist():
+            for fname in zip_obj.namelist():
 
                 # Check for path traversal
-                abs_path = os.path.abspath(os.path.join(destination_dir, file_name))
-                if not abs_path.startswith(os.path.abspath(destination_dir)):
-                    raise ValueError(f'Unsafe file detected in zip: {file_name}')
+                abs_path = os.path.abspath(os.path.join(dir_out, fname))
+                if not abs_path.startswith(os.path.abspath(dir_out)):
+                    raise ValueError(f'Unsafe file detected in zip: {fname}')
 
                 # Extract all files to destination directory
-                zip_obj.extractall(destination_dir)
-                print(f'All files saved in: {destination_dir}')
+                zip_obj.extractall(dir_out)
+                print(f'All files saved in: {dir_out}')
 
     except zipfile.BadZipFile:
         print(f'Error: {file_dir} is not a valid zip file.')
+
 
 def time_now():
     '''
@@ -57,6 +75,7 @@ def time_now():
     time_now_str = time_now_dt + '\t'
 
     return time_now_str
+
 
 class UDLogger:
     '''
@@ -74,7 +93,7 @@ class UDLogger:
 
     def create_logger(self):
         '''
-        Create new logger. 
+        Create new logger.
 
         Parameters
         ----------
@@ -95,7 +114,7 @@ class UDLogger:
         formatter = logging.Formatter(
             fmt='%(asctime)s: %(levelname)s:%(name)s:%(message)s',
             datefmt='%Y-%m-%d %H:%M:%S'
-        ) 
+        )
 
         # assignment of formatter to handler and handler to logger
         console_handler.setFormatter(formatter)
