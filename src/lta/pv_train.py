@@ -1,16 +1,18 @@
 #!/usr/bin/env python3
 
+import os
 import yaml
 import requests
 from datetime import datetime as dt
+import shutil
+
 import util
 from util import UDLogger
-import shutil
 
 with open('config/config.yaml', 'r') as f:
     conf = yaml.safe_load(f)
 
-with open(conf['api']['lta_key']) as k:
+with open(os.path.expanduser(conf['api']['lta_key'])) as k:
     key = k.readlines()[0]
 
 ud_logger = UDLogger(filename='api.log', name=__name__)
@@ -64,14 +66,18 @@ class PVTrain:
         yyyymmdd = dt.strftime(self.date, '%Y%m%d')
         zip_path = f'{conf['incoming']['pv_train']}zip/pv_train_{yyyymmdd}.zip'
 
-        zip_response = requests.get(dl_link)
+        zip_resp = requests.get(dl_link)
 
-        with open(zip_path, "wb") as f:
-            for chunk in zip_response.iter_content(chunk_size=8192):
-                if chunk:
-                    f.write(chunk)
-
-        return zip_response
+        if zip_resp.ok:
+            with util.safe_open(zip_path, 'wb') as f:
+                for chunk in zip_resp.iter_content(chunk_size=8192):
+                    if chunk:
+                        f.write(chunk)
+            logger.info(f'Successfully written zip file to {zip_path}')
+        else:
+            err = f'Error: {zip_resp.status_code}, {zip_resp.text}'
+            logger.error(f'{err}')
+            raise Exception(f'{err}')
 
     def unzip_to_incoming(file_dir: str,
                           out_dir: str,
