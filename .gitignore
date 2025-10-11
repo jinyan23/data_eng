@@ -209,3 +209,6 @@ __marimo__/
 
 # Miscellaneous
 scratch.py
+
+# Config files
+config/config_s3.yaml

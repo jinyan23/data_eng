@@ -3,7 +3,7 @@ api:
     lta_key: '~/keys/key_lta.txt'
 
 incoming:
-    pv_train: '~/incoming/pv_train/'
+    pv_train: '~/incoming/pv_train'
     
 logs:
     import: '~/logs/import.log'

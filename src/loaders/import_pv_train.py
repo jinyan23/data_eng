@@ -30,15 +30,15 @@ def import_pv_train():
     # extract
     # determine backfill logic
     backfill = config_pv_train['backfill']
-    file_prefix = config_pv_train['file_prefix']
+    csv_path = config_pv_train['csv_prefix'] + config_pv_train['csv_name']
     logger.info(f'Run executing for backfill={backfill}')
 
     if backfill is False:
-        yyyy_mm = dt.strftime(dt.now() - relativedelta(months=1), '%Y%m')
-        file_path = f'{file_prefix}_{yyyy_mm}.csv'
+        yyyymm = dt.strftime(dt.now() - relativedelta(months=1), '%Y%m')
+        file_path = f'{csv_path}_{yyyymm}.csv'
     else:
-        yyyy_mm = config_pv_train['yyyymm']
-        file_path = f'{file_prefix}_{yyyy_mm}.csv'
+        yyyymm = config_pv_train['yyyymm']
+        file_path = f'{csv_path}_{yyyymm}.csv'
 
     try:
         df = pd.read_csv(file_path,
@@ -64,7 +64,7 @@ def import_pv_train():
     sqlpipe.load_db(config_db_tbl, data)
 
     row_count = df.shape[0]
-    logger.info(f'{__name__}: {yyyy_mm} completed, {row_count} rows inserted')
+    logger.info(f'{__name__}: {yyyymm} completed, {row_count} rows inserted')
 
 
 if __name__ == '__main__':
