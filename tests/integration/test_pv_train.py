@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 
-import os
 import io
 from datetime import datetime as dt
 import pytest
@@ -8,14 +7,14 @@ import responses
 import zipfile
 
 from lta.pv_train import PVTrain
-import util
+
 
 # api_call() test
 @responses.activate
 def test_pv_train_api_call_pass():
 
     url = 'https://datamall2.mytransport.sg/ltaodataservice/PV/Train'
-    pvt = PVTrain(dt.now().date())  
+    pvt = PVTrain(dt.now().date())
 
     resp_pass = responses.Response(
         method='GET',
@@ -36,7 +35,7 @@ def test_pv_train_api_call_pass():
 def test_pv_train_api_call_fail():
 
     url = 'https://datamall2.mytransport.sg/ltaodataservice/PV/Train'
-    pvt = PVTrain(dt.now().date())  
+    pvt = PVTrain(dt.now().date())
 
     resp_fail = responses.Response(
         method='GET',
@@ -98,7 +97,7 @@ def test_pv_train_download_zip_fail(tmp_path):
     )
 
     responses.add(resp_fail)
-    
+
     # assert error status code can be obtained correctly
     with pytest.raises(Exception) as excinfo:
         pvt.download_zip(url, tmp_path)
@@ -148,10 +147,10 @@ def test_pv_train_unzip_to_incoming_pass(tmp_path):
 def test_pv_train_unzip_to_incoming_fail(tmp_path):
 
     pvt = PVTrain(dt.now().date())
-    yyyymmdd = dt.strftime(pvt.date, '%Y%m%d')
-    test_name = 'pv_train'
-    zip_filename = f'{test_name}_{yyyymmdd}.zip'
-    zip_path = tmp_path / zip_filename  # Do NOT create this file
+    # yyyymmdd = dt.strftime(pvt.date, '%Y%m%d')
+    # test_name = 'pv_train'
+    # zip_filename = f'{test_name}_{yyyymmdd}.zip'
+    # zip_path = tmp_path / zip_filename  # Do NOT create this file
 
     # assert error status code can be obtained correctly
     with pytest.raises(FileNotFoundError):

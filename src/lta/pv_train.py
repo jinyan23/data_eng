@@ -47,7 +47,7 @@ class PVTrain:
             dl_link = data['value'][0]['Link']
             logger.info(f'api call: {url_suffix}: {resp.status_code}')
         else:
-            err = f'Error api call: {resp.status_code}, {resp.text}'
+            err = f'Error: {resp.status_code}, {resp.text}'
             logger.error(f'{err}')
             raise Exception(f'{err}')
 

@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 
-import io
 import zipfile
 from src import util
 from src.util import UDLogger
 
 ud_logger = UDLogger(filename='test.log', name=__name__)
 logger = ud_logger.create_logger()
+
 
 def test_unzip_file(tmp_path):
     '''
@@ -80,8 +80,6 @@ def test_udlogger_init():
     Perform unit test for user defined logger.
     1) Able to instantiate UDLogger class object
     '''
-    logger = UDLogger(filename='test.log', 
+    logger = UDLogger(filename='test.log',
                       name='test_logger')
     assert logger.filename.endswith('test.log')
-
-
