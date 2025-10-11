@@ -11,6 +11,11 @@ jobs:
   test:
     runs-on: ubuntu-latest
 
+    env:
+      CONFIG_DIR: ${{ github.workspace }}/config
+      KEY_DIR: ${{ github.workspace }}/keys
+      PYTHONPATH: ${{ github.workspace }}
+
     steps:
       - name: Checkout
         uses: actions/checkout@v3
@@ -30,7 +35,10 @@ jobs:
           flake8  --count --select=E9,F63,F7,F82 --show-source --statistics
           flake8  --count --max-complexity=10 --statistics
 
+      - name: Create dummy key
+        run: |
+          mkdir -p $HOME/keys
+          echo "dummy_key" > $HOME/keys/key_lta.txt
+
       - name: Run tests
-        run: pytest tests -v
-        env:
-          CONFIG_PATH: /root/data_eng/config/config.yaml
+        run: pytest tests/

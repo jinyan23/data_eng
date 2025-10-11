@@ -2,9 +2,10 @@
 
 '''Utility Functions'''
 
+import os
+
 import zipfile
 import logging
-import os
 import yaml
 
 
@@ -32,7 +33,15 @@ def load_config(config_file: str):
         config_file (str): config file name
     '''
 
-    config_path = os.path.expanduser(f'~/data_eng/config/{config_file}')
+    config_dir = os.getenv("CONFIG_DIR")
+
+    if not config_dir:
+        config_dir = os.path.expanduser("~/data_eng/config")
+
+    config_path = os.path.join(config_dir, config_file)
+
+    if not os.path.exists(config_path):
+        raise FileNotFoundError(f"Config file not found: {config_path}")
 
     with open(f'{config_path}', 'r', encoding='utf-8') as f:
         conf = yaml.safe_load(f)
