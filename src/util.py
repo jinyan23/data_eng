@@ -33,15 +33,13 @@ def load_config(config_file: str):
         config_file (str): config file name
     '''
 
+    # look for config directory 
     config_dir = os.getenv("CONFIG_DIR")
 
     if not config_dir:
         config_dir = os.path.expanduser("~/data_eng/config")
 
     config_path = os.path.join(config_dir, config_file)
-
-    if not os.path.exists(config_path):
-        raise FileNotFoundError(f"Config file not found: {config_path}")
 
     with open(f'{config_path}', 'r', encoding='utf-8') as f:
         conf = yaml.safe_load(f)
@@ -80,6 +78,7 @@ def unzip_file(zip_path, out_dir, logger):
 class UDLogger:
     '''
     User defined logger class.
+
     Parameters
     ----------
         filename (str): .log file the log messages to be written to
