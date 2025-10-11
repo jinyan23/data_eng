@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 
 import zipfile
-from src import util
-from src.util import UDLogger
+import util
+from util import UDLogger
 
 ud_logger = UDLogger(filename='test.log', name=__name__)
 logger = ud_logger.create_logger()

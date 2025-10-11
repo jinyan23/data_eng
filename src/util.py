@@ -90,6 +90,10 @@ class UDLogger:
         ----------
             name (str): logger name
         '''
+        # create directory to hold .log files
+        log_dir = os.path.expanduser('~/logs')
+        os.makedirs(log_dir, exist_ok=True)
+
         logger = logging.getLogger(self.name)
         logger.setLevel(logging.INFO)
 

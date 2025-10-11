@@ -32,3 +32,5 @@ jobs:
 
       - name: Run tests
         run: pytest tests -v
+        env:
+          CONFIG_PATH: /root/data_eng/config/config.yaml
