@@ -37,7 +37,7 @@ def load_config(config_file: str):
     config_dir = os.getenv("CONFIG_DIR")
 
     if not config_dir:
-        config_dir = os.path.expanduser("~/data_eng/config")
+        config_dir = os.path.expanduser("~/pipeline/config")
 
     config_path = os.path.join(config_dir, config_file)
 

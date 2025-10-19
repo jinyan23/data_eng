@@ -4,15 +4,13 @@ on:
   push:
     branches-ignore:
       - main
-  pull_request:
-    branches: main
 
 jobs:
   test:
     runs-on: ubuntu-latest
 
     env:
-      CONFIG_DIR: ${{ github.workspace }}/config
+      CONFIG_DIR: ${{ github.workspace }}/pipeline/config
       KEY_DIR: ${{ github.workspace }}/keys
       PYTHONPATH: ${{ github.workspace }}
 
@@ -41,4 +39,4 @@ jobs:
           echo "dummy_key" > $HOME/keys/key_lta.txt
 
       - name: Run tests
-        run: pytest tests/
+        run: pytest pipeline
