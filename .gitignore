@@ -2,6 +2,7 @@
 __pycache__/
 *.py[codz]
 *$py.class
+.* 
 
 # C extensions
 *.so
@@ -209,6 +210,19 @@ __marimo__/
 
 # Miscellaneous
 scratch.py
+set_prod_env.sh
+set_test_env.sh
+
+# Airflow
+airflow/airflow.cfg
 
 # Config files
-config/config_s3.yaml
+pipeline/config/config_s3.yaml
+logins.txt
+
+# Data dir
+incoming/
+keys/
+
+
+
