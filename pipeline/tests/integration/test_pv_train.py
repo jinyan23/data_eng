@@ -115,7 +115,7 @@ def test_pv_train_unzip_to_incoming_pass(tmp_path):
     zip_filename = f'{test_name}_{yyyymmdd}.zip'
     csv_path = tmp_path / csv_filename
     zip_path = tmp_path / zip_filename
-    arv_path = tmp_path / zip_filename
+    arc_path = tmp_path / zip_filename
 
     # create a temp csv and zip file
     mock_data = 'col1,col2,col3\n1,2,3\n4,5,6'
@@ -129,7 +129,7 @@ def test_pv_train_unzip_to_incoming_pass(tmp_path):
     pvt.unzip_to_incoming(
         csv_dir=tmp_path,
         zip_dir=tmp_path,
-        arv_dir=tmp_path
+        arc_dir=tmp_path
     )
 
     # assert that csv file is written out correctly
@@ -140,7 +140,7 @@ def test_pv_train_unzip_to_incoming_pass(tmp_path):
         assert f.read() == mock_data
 
     # assert that zip file is moved to archive dir correctly
-    assert arv_path.exists()
+    assert arc_path.exists()
 
 
 @responses.activate
@@ -157,5 +157,5 @@ def test_pv_train_unzip_to_incoming_fail(tmp_path):
         pvt.unzip_to_incoming(
             csv_dir=tmp_path,
             zip_dir=tmp_path,
-            arv_dir=tmp_path
+            arc_dir=tmp_path
         )

@@ -3,6 +3,7 @@
 import requests
 from datetime import datetime as dt
 import shutil
+import os
 
 import util
 from util import UDLogger
@@ -84,7 +85,7 @@ class PVTrain:
     def unzip_to_incoming(self,
                           zip_dir: str,
                           csv_dir: str,
-                          arv_dir: str | bool = False):
+                          arc_dir: str | bool = False):
         '''
         Function unzips the PV Train file and store the csv into the csv file.
         It then moves the zip file into the archive folder.
@@ -93,19 +94,21 @@ class PVTrain:
         ----------
             zip_dir: dir that stores the zip file
             csv_dir: dir that stores the csv file
-            arv_dir: archive dir or if not archiving, False
+            arc_dir: archive dir or if not archiving, False
         '''
 
         yyyymmdd = dt.strftime(self.date, '%Y%m%d')
-        zip_path = f'{zip_dir}/pv_train_{yyyymmdd}.zip'
-        arv_path = f'{arv_dir}/pv_train_{yyyymmdd}.zip'
+
+        zip_path = os.path.expanduser(f'{zip_dir}/pv_train_{yyyymmdd}.zip')
+        out_dir = os.path.expanduser(f'{csv_dir}')
+        arc_path = os.path.expanduser(f'{arc_dir}/pv_train_{yyyymmdd}.zip')
 
         try:
-            util.unzip_file(zip_path, csv_dir, logger)
+            util.unzip_file(zip_path, out_dir, logger)
             logger.info(f'Successfully unzipped file {zip_path}.')
-            if arv_dir is not False:
-                shutil.move(zip_path, arv_path)
-                logger.info(f'Successfully moved zipped file to {arv_path}.')
+            if arc_dir is not False:
+                shutil.move(zip_path, arc_path)
+                logger.info(f'Successfully moved zipped file to {arc_path}.')
         except Exception as e:
             logger.error(f'The error {e} occurred.')
             raise

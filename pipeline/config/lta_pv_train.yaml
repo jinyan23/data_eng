@@ -2,9 +2,9 @@ config_pv_train:
     url_suffix: 'ltaodataservice/PV/Train'
     backfill: False
     yyyymm: '202507'
-    zip_prefix: '../incoming/pv_train/zip'
-    csv_prefix: '../incoming/pv_train/csv'
-    arv_prefix: '../incoming/pv_train/archive'
+    zip_prefix: '~/incoming/pv_train/zip'
+    csv_prefix: '~/incoming/pv_train/csv'
+    arc_prefix: '~/incoming/pv_train/archive'
     csv_name: '/transport_node_train'
     delimiter: ','
     col_pd: {
