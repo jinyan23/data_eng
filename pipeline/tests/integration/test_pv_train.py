@@ -8,6 +8,7 @@ import zipfile
 
 from lta.pv_train import PVTrain
 
+
 @pytest.fixture(autouse=True)
 def mock_env(monkeypatch):
     env = {
@@ -16,6 +17,7 @@ def mock_env(monkeypatch):
     for k, v in env.items():
         monkeypatch.setenv(k, v)
     return env
+
 
 # api_call() test
 @responses.activate
