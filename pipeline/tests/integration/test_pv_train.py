@@ -8,6 +8,14 @@ import zipfile
 
 from lta.pv_train import PVTrain
 
+@pytest.fixture(autouse=True)
+def mock_env(monkeypatch):
+    env = {
+        'LTA_KEY': 'api_token',
+    }
+    for k, v in env.items():
+        monkeypatch.setenv(k, v)
+    return env
 
 # api_call() test
 @responses.activate
