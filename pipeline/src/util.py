@@ -6,12 +6,17 @@ import os
 
 import zipfile
 import logging
+from pathlib import Path
 import yaml
+
+
+# define root dir
+root = Path(__file__).parent.parent
 
 
 def safe_open(path: str, mode: str):
     '''
-    Utility function to expand ~/ home directory safely
+    Utility function to expand from root directory safely
 
     Parameters
     ----------
@@ -19,7 +24,7 @@ def safe_open(path: str, mode: str):
         mode (str): 'wb' or 'r' mode used to open the file
     '''
 
-    full_path = os.path.expanduser(path)
+    full_path = root / path
 
     return open(full_path, mode)
 
@@ -33,15 +38,9 @@ def load_config(config_file: str):
         config_file (str): config file name
     '''
 
-    # look for config directory 
-    config_dir = os.getenv('CONFIG_DIR')
+    config_path = root / 'config' / config_file
 
-    if not config_dir:
-        config_dir = os.path.expanduser('~/pipeline/config')
-
-    config_path = os.path.join(config_dir, config_file)
-
-    with open(f'{config_path}', 'r', encoding='utf-8') as f:
+    with open(config_path, 'r', encoding='utf-8') as f:
         conf = yaml.safe_load(f)
 
     return conf
