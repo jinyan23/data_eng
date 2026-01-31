@@ -19,16 +19,19 @@ def main():
     curr_date = dt.now().date()
     # do api call to lta to get zip link
     pv_train = PVTrain(curr_date)
+
+    # step 1: api call
     dl_link = pv_train.api_call()
     pv_train.download_zip(dl_link, config['incoming']['pv_train'] + '/zip')
 
+    # # step 2: file transfer
     pv_train.unzip_to_incoming(
         config_pv_train['zip_prefix'],
         config_pv_train['csv_prefix'],
         config_pv_train['arc_prefix'],
     )
 
-    # load csv into mariadb
+    # step 3: load csv into mariadb
     import_pv_train()
 
 

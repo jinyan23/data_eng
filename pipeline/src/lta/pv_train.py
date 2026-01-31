@@ -4,12 +4,15 @@ import requests
 from datetime import datetime as dt
 import shutil
 import os
+from pathlib import Path
 
 import util
 from util import UDLogger
 
 ud_logger = UDLogger(filename='api.log', name=__name__)
 logger = ud_logger.create_logger()
+
+root = Path(__file__).parent.parent.parent
 
 
 class PVTrain:
@@ -28,8 +31,7 @@ class PVTrain:
         API call to LTA DataMall to get URL for the data.
         '''
 
-        with util.safe_open(self.conf['api']['lta_key'], 'r') as k:
-            key = k.readlines()[0]
+        key = os.environ['LTA_KEY']
 
         url = self.conf['api']['lta_url']
         url_suffix = self.conf_pvt['config_pv_train']['url_suffix']
@@ -67,7 +69,10 @@ class PVTrain:
         '''
 
         yyyymmdd = dt.strftime(self.date, '%Y%m%d')
-        zip_path = f'{zip_dir}/pv_train_{yyyymmdd}.zip'
+
+        # create directory for zip file
+        Path(root / f'{zip_dir}').mkdir(parents=True, exist_ok=True)
+        zip_path = Path(root / f'{zip_dir}') / f'pv_train_{yyyymmdd}.zip'
 
         zip_resp = requests.get(dl_link)
 
@@ -99,9 +104,13 @@ class PVTrain:
 
         yyyymmdd = dt.strftime(self.date, '%Y%m%d')
 
-        zip_path = os.path.expanduser(f'{zip_dir}/pv_train_{yyyymmdd}.zip')
-        out_dir = os.path.expanduser(f'{csv_dir}')
-        arc_path = os.path.expanduser(f'{arc_dir}/pv_train_{yyyymmdd}.zip')
+        # create directory for csv and archive files
+        Path(root / f'{csv_dir}').mkdir(parents=True, exist_ok=True)
+        Path(root / f'{arc_dir}').mkdir(parents=True, exist_ok=True)
+
+        zip_path = Path(root / f'{zip_dir}') / f'pv_train_{yyyymmdd}.zip'
+        out_dir = Path(root / f'{csv_dir}')
+        arc_path = Path(root / f'{arc_dir}') / f'pv_train_{yyyymmdd}.zip'
 
         try:
             util.unzip_file(zip_path, out_dir, logger)
@@ -112,3 +121,17 @@ class PVTrain:
         except Exception as e:
             logger.error(f'The error {e} occurred.')
             raise
+
+
+if __name__ == "__main__":
+
+    curr_date = dt.now().date()
+    # do api call to lta to get zip link
+    pv_train = PVTrain(curr_date)
+
+    # print("Testing unzip_to_incoming()...")
+    yyyymmdd = dt.strftime(curr_date, '%Y%m%d')
+    zip_prefix = 'incoming/pv_train/zip'
+    csv_prefix = 'incoming/pv_train/csv'
+    arc_prefix = 'incoming/pv_train/archive'
+    pv_train.unzip_to_incoming(zip_prefix, csv_prefix, arc_prefix)

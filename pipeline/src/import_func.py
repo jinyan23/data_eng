@@ -2,6 +2,8 @@
 
 '''Data Import Functions'''
 import os
+from datetime import datetime as dt
+from dateutil.relativedelta import relativedelta
 import mysql.connector
 from mysql.connector import Error
 from util import UDLogger
@@ -42,19 +44,55 @@ class DataPipe:
 
         return connection
 
-    def load_db(self, config_db, data):
+    def load_db(self, config_db, mode, timekey, yyyymm, data):
         '''
         Function that loads data from source to database table
 
         Parameters
         ----------
             config_db: config for database
+            mode: data load mode - append, truncate, refresh
+            timekey: table column used for partition by timekey
+            yyyymm: year_mon of data to delete, yyyymm format
             data: data to be inserted organized into a list of tuples
         '''
+
         connection = self.create_connection()
+        tbl = f'{self.database}.{config_db["tbl"]}'
+
+        # perform deletion based on the mode (truncate / refresh)
+        if mode == 'truncate':
+            del_stmt = f'TRUNCATE {tbl};'
+            try:
+                cursor = connection.cursor()
+                cursor.execute(del_stmt)
+                logger.info(f"""TRUNCATE statement executed successfully for {tbl}."""
+                            )
+            except Error as e:
+                logger.error(f'The error {e} occurred.')
+                raise
+        elif mode == 'refresh':
+            curr_yearmon = dt.strptime(yyyymm, '%Y%m')
+            next_yearmon = curr_yearmon + relativedelta(months=1)
+            sql_curr_yearmon = dt.strftime(curr_yearmon, '%Y-%m-%d')
+            sql_next_yearmon = dt.strftime(next_yearmon, '%Y-%m-%d')
+            del_stmt = f"""
+            DELETE FROM {tbl}
+            WHERE `{timekey}` >= '{sql_curr_yearmon}'
+            AND `{timekey}` < '{sql_next_yearmon}';
+            """.strip()
+            try:
+                cursor = connection.cursor()
+                cursor.execute(del_stmt)
+                connection.commit()
+                logger.info(f'''DELETE statement executed successfully for {tbl} by timekey = "{sql_curr_yearmon}".''')
+            except Error as e:
+                logger.error(f'The error {e} occurred.')
+
+        elif mode == 'append':
+            pass
 
         # create the insert statement
-        tbl = f'{self.database}.{config_db['tbl']}'
         col_name_list = config_db['tbl_col'].values()
         tbl_col_names = ', '.join(f'`{i}`' for i in col_name_list)
         placeholders = ', '.join(['%s'] * len(col_name_list))
@@ -64,7 +102,8 @@ class DataPipe:
             cursor = connection.cursor()
             cursor.executemany(stmt, data)
             connection.commit()
-            logger.info(f'Insert statement executed successfully for {tbl}.')
+            logger.info(f'INSERT statement executed successfully for {tbl}.')
+            connection.close()
         except Error as e:
             logger.error(f'The error {e} occurred.')
             raise

@@ -3,6 +3,8 @@
 import pandas as pd
 import pytest
 from unittest.mock import patch, MagicMock
+from datetime import datetime as dt
+from dateutil.relativedelta import relativedelta
 
 from loaders.import_pv_train import import_pv_train
 
@@ -13,7 +15,10 @@ def mock_env(monkeypatch):
         'DB_HOST': '127.0.0.1',
         'DB_USER': 'test_username',
         'DB_PASS': 'test_password',
-        'DB_NAME': 'test_database'
+        'DB_NAME': 'test_database',
+        'yyyymm': '202501',
+        'mode': 'refresh',
+        'timekey': 'year_month'
     }
     for k, v in env.items():
         monkeypatch.setenv(k, v)
@@ -26,6 +31,8 @@ def mock_env(monkeypatch):
     'csv_name': 'csv_name',
     'yyyymm': '202501',
     'delimiter': ',',
+    'mode': 'refresh',
+    'timekey': 'year_month',
     'col_pd': {
         'YEAR_MONTH': 'str',
         'DAY_TYPE': 'str',
@@ -56,9 +63,12 @@ def test_import_pv_train_backfill_F(mock_read_csv, mock_datapipe, mock_env):
     mock_instance = MagicMock()
     mock_datapipe.return_value = mock_instance
 
-    # mock csv data 
+    # mock current datetime
+    yyyymm = dt.strftime(dt.now() - relativedelta(months=1), '%Y%m')
+
+    # mock csv data
     mock_df = pd.DataFrame({
-        'YEAR_MONTH': ['2025-01', '2024-12'],
+        'YEAR_MONTH': ['2025-12', '2025-12'],
         'DAY_TYPE': ['WEEKDAY', 'WEEKENDS/HOLIDAY'],
         'TIME_PER_HOUR': [20, 13],
         'PT_TYPE': ['TRAIN_A', 'TRAIN_B'],
@@ -76,18 +86,30 @@ def test_import_pv_train_backfill_F(mock_read_csv, mock_datapipe, mock_env):
         hostname=mock_env['DB_HOST'],
         username=mock_env['DB_USER'],
         password=mock_env['DB_PASS'],
-        database=mock_env['DB_NAME']
+        database=mock_env['DB_NAME'],
     )
-    mock_instance.load_db.assert_called_once()
-    args, kwargs = mock_datapipe.call_args
-    assert set(kwargs.values()) == {'127.0.0.1', 
-                                    'test_username', 
-                                    'test_password', 
-                                    'test_database'}
+    mock_instance.load_db.assert_called_once_with(
+        config_db={
+            'tbl': 'r_pv_train',
+            'tbl_col': {
+                'YEAR_MONTH': 'year_month',
+                'DAY_TYPE': 'day_type',
+                'TIME_PER_HOUR': 'time_per_hour',
+                'PT_TYPE': 'pt_type',
+                'PT_CODE': 'pt_code',
+                'TOTAL_TAP_IN_VOLUME': 'total_tap_in_volume',
+                'TOTAL_TAP_OUT_VOLUME': 'total_tap_out_volume'
+            }
+        },
+        mode='refresh',
+        timekey='year_month',
+        yyyymm=yyyymm,
+        data=[tuple(row) for row in mock_df.to_numpy()]
+    )
 
     transformed_YEAR_MONTH = mock_df['YEAR_MONTH']
-    assert transformed_YEAR_MONTH.iloc[0] == '2025-01-01'
-    assert transformed_YEAR_MONTH.iloc[1] == '2024-12-01'
+    assert transformed_YEAR_MONTH.iloc[0] == '2025-12-01'
+    assert transformed_YEAR_MONTH.iloc[1] == '2025-12-01'
     mock_read_csv.assert_called_once()
 
 
@@ -97,6 +119,8 @@ def test_import_pv_train_backfill_F(mock_read_csv, mock_datapipe, mock_env):
     'csv_name': 'csv_name',
     'yyyymm': '202501',
     'delimiter': ',',
+    'mode': 'refresh',
+    'timekey': 'year_month',
     'col_pd': {
         'YEAR_MONTH': 'str',
         'DAY_TYPE': 'str',
@@ -127,7 +151,7 @@ def test_import_pv_train_backfill_T(mock_read_csv, mock_datapipe, mock_env):
     mock_instance = MagicMock()
     mock_datapipe.return_value = mock_instance
 
-    # mock csv data 
+    # mock csv data
     mock_df = pd.DataFrame({
         'YEAR_MONTH': ['2025-01', '2024-12'],
         'DAY_TYPE': ['WEEKDAY', 'WEEKENDS/HOLIDAY'],
@@ -147,14 +171,26 @@ def test_import_pv_train_backfill_T(mock_read_csv, mock_datapipe, mock_env):
         hostname=mock_env['DB_HOST'],
         username=mock_env['DB_USER'],
         password=mock_env['DB_PASS'],
-        database=mock_env['DB_NAME']
+        database=mock_env['DB_NAME'],
     )
-    mock_instance.load_db.assert_called_once()
-    args, kwargs = mock_datapipe.call_args
-    assert set(kwargs.values()) == {'127.0.0.1', 
-                                    'test_username', 
-                                    'test_password', 
-                                    'test_database'}
+    mock_instance.load_db.assert_called_once_with(
+        config_db={
+            'tbl': 'r_pv_train',
+            'tbl_col': {
+                'YEAR_MONTH': 'year_month',
+                'DAY_TYPE': 'day_type',
+                'TIME_PER_HOUR': 'time_per_hour',
+                'PT_TYPE': 'pt_type',
+                'PT_CODE': 'pt_code',
+                'TOTAL_TAP_IN_VOLUME': 'total_tap_in_volume',
+                'TOTAL_TAP_OUT_VOLUME': 'total_tap_out_volume'
+            }
+        },
+        mode='refresh',
+        timekey='year_month',
+        yyyymm='202501',
+        data=[tuple(row) for row in mock_df.to_numpy()]
+    )
 
     transformed_YEAR_MONTH = mock_df['YEAR_MONTH']
     assert transformed_YEAR_MONTH.iloc[0] == '2025-01-01'
