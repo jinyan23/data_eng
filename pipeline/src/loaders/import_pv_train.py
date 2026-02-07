@@ -5,13 +5,12 @@
 import os
 
 from datetime import datetime as dt
-import pandas as pd
 from dateutil.relativedelta import relativedelta
 
 from util import load_config
 from util import UDLogger
 from import_func import DataPipe
-from pathlib import Path
+import util_s3
 
 # create logger
 ud_logger = UDLogger(filename='import.log', name=__name__)
@@ -21,7 +20,7 @@ YAML_FILE = 'lta_pv_train.yaml'
 config_pv_train = load_config(YAML_FILE)['config_pv_train']
 config_db_tbl = load_config(YAML_FILE)['config_db_tbl']
 
-root = Path(__file__).parent.parent.parent
+# root = Path(__file__).parent.parent.parent
 
 
 def import_pv_train():
@@ -43,9 +42,9 @@ def import_pv_train():
         yyyymm = config_pv_train['yyyymm']
 
     try:
-        df = pd.read_csv(root / csv_dir / f'{csv_name}_{yyyymm}.csv',
-                         delimiter=config_pv_train['delimiter'],
-                         dtype=config_pv_train['col_pd'])
+        df = util_s3.read_csv_s3(f'{csv_dir}/{csv_name}_{yyyymm}.csv',
+                                 delimiter=config_pv_train['delimiter'],
+                                 dtype=config_pv_train['col_pd'])
     except Exception as e:
         logger.error(f'The error {e} occurred.')
         raise

@@ -1,10 +1,12 @@
 #!/usr/bin/env python3
 
 import io
+from io import BytesIO
 from datetime import datetime as dt
 import pytest
 import responses
 import zipfile
+from unittest.mock import patch, MagicMock
 
 from lta.pv_train import PVTrain
 
@@ -13,6 +15,7 @@ from lta.pv_train import PVTrain
 def mock_env(monkeypatch):
     env = {
         'LTA_KEY': 'api_token',
+        'BUCKET': 'test-bucket',
     }
     for k, v in env.items():
         monkeypatch.setenv(k, v)
@@ -62,7 +65,8 @@ def test_pv_train_api_call_fail():
 
 
 @responses.activate
-def test_pv_train_download_zip_pass(tmp_path):
+@patch('lta.pv_train.util_s3.upload_fileobj')
+def test_pv_train_download_zip_pass(mock_upload):
 
     url = 'https://datamall2.mytransport.sg/ltaodataservice/PV/Train'
     pvt = PVTrain(dt.now().date())
@@ -79,20 +83,19 @@ def test_pv_train_download_zip_pass(tmp_path):
 
     responses.add(resp_pass)
 
-    pvt.download_zip(url, tmp_path)
+    zip_dir = 'incoming/pv_train/zip'
+    pvt.download_zip(url, zip_dir)
     test_zip = f'pv_train_{yyyymmdd}.zip'
-    zip_path = tmp_path / f'{test_zip}'
 
-    # assert that zip file is downloaded and stored
-    assert zip_path.exists()
-
-    # assert that the content of the zip file is uncorrupted
-    with open(zip_path, "rb") as f:
-        assert f.read() == zip_content
+    mock_upload.assert_called_once()
+    args, kwargs = mock_upload.call_args
+    object_name = kwargs.get('object_name', args[1] if len(args) > 1 else None)
+    assert object_name == f'{zip_dir}/{test_zip}'
 
 
 @responses.activate
-def test_pv_train_download_zip_fail(tmp_path):
+@patch('lta.pv_train.util_s3.upload_fileobj')
+def test_pv_train_download_zip_fail(mock_upload):
 
     url = 'https://datamall2.mytransport.sg/ltaodataservice/PV/Train'
     pvt = PVTrain(dt.now().date())
@@ -110,12 +113,14 @@ def test_pv_train_download_zip_fail(tmp_path):
 
     # assert error status code can be obtained correctly
     with pytest.raises(Exception) as excinfo:
-        pvt.download_zip(url, tmp_path)
+        pvt.download_zip(url, 'incoming/pv_train/zip')
     assert "Error: 404" in str(excinfo.value)
+    mock_upload.assert_not_called()
 
 
-@responses.activate
-def test_pv_train_unzip_to_incoming_pass(tmp_path):
+@patch('lta.pv_train.util_s3.upload_fileobj')
+@patch('lta.pv_train.boto3.client')
+def test_pv_train_unzip_to_incoming_pass(mock_boto_client, mock_upload):
 
     pvt = PVTrain(dt.now().date())
     yyyymmdd = dt.strftime(pvt.date, '%Y%m%d')
@@ -123,9 +128,6 @@ def test_pv_train_unzip_to_incoming_pass(tmp_path):
     test_name = 'pv_train'
     csv_filename = f'{test_name}_{yyyymmdd}.csv'
     zip_filename = f'{test_name}_{yyyymmdd}.zip'
-    csv_path = tmp_path / csv_filename
-    zip_path = tmp_path / zip_filename
-    arc_path = tmp_path / zip_filename
 
     # create a temp csv and zip file
     mock_data = 'col1,col2,col3\n1,2,3\n4,5,6'
@@ -133,39 +135,37 @@ def test_pv_train_unzip_to_incoming_pass(tmp_path):
     with zipfile.ZipFile(zip_buffer, 'w') as zf:
         zf.writestr(csv_filename, mock_data)
 
-    with open(zip_path, 'wb') as f:
-        f.write(zip_buffer.getvalue())
+    mock_s3 = MagicMock()
+    mock_boto_client.return_value = mock_s3
+    mock_s3.get_object.return_value = {
+        'Body': BytesIO(zip_buffer.getvalue())
+    }
 
     pvt.unzip_to_incoming(
-        csv_dir=tmp_path,
-        zip_dir=tmp_path,
-        arc_dir=tmp_path
+        csv_dir='incoming/pv_train/csv',
+        zip_dir='incoming/pv_train/zip'
     )
 
-    # assert that csv file is written out correctly
-    assert csv_path.exists()
-
-    # assert that the csv data is uncorrupted after unzipping
-    with open(csv_path) as f:
-        assert f.read() == mock_data
-
-    # assert that zip file is moved to archive dir correctly
-    assert arc_path.exists()
+    mock_s3.get_object.assert_called_once_with(
+        Bucket='test-bucket',
+        Key=f'incoming/pv_train/zip/{zip_filename}'
+    )
+    mock_upload.assert_called_once()
+    _, kwargs = mock_upload.call_args
+    assert kwargs['object_name'] == f'incoming/pv_train/csv/{csv_filename}'
 
 
-@responses.activate
-def test_pv_train_unzip_to_incoming_fail(tmp_path):
+@patch('lta.pv_train.boto3.client')
+def test_pv_train_unzip_to_incoming_fail(mock_boto_client):
 
     pvt = PVTrain(dt.now().date())
-    # yyyymmdd = dt.strftime(pvt.date, '%Y%m%d')
-    # test_name = 'pv_train'
-    # zip_filename = f'{test_name}_{yyyymmdd}.zip'
-    # zip_path = tmp_path / zip_filename  # Do NOT create this file
+    mock_s3 = MagicMock()
+    mock_boto_client.return_value = mock_s3
+    mock_s3.get_object.side_effect = Exception('missing')
 
     # assert error status code can be obtained correctly
-    with pytest.raises(FileNotFoundError):
+    with pytest.raises(Exception):
         pvt.unzip_to_incoming(
-            csv_dir=tmp_path,
-            zip_dir=tmp_path,
-            arc_dir=tmp_path
+            csv_dir='incoming/pv_train/csv',
+            zip_dir='incoming/pv_train/zip'
         )
