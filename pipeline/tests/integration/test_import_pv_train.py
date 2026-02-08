@@ -16,6 +16,7 @@ def mock_env(monkeypatch):
         'DB_USER': 'test_username',
         'DB_PASS': 'test_password',
         'DB_NAME': 'test_database',
+        'BUCKET': 'test-bucket',
         'yyyymm': '202501',
         'mode': 'refresh',
         'timekey': 'year_month'
@@ -27,7 +28,7 @@ def mock_env(monkeypatch):
 
 @patch('loaders.import_pv_train.config_pv_train', {
     'backfill': False,
-    'csv_prefix': '/tmp/incoming/pv_train/csv',
+    'csv_prefix': 'incoming/pv_train/csv',
     'csv_name': 'csv_name',
     'yyyymm': '202501',
     'delimiter': ',',
@@ -56,8 +57,8 @@ def mock_env(monkeypatch):
     }
 })
 @patch('loaders.import_pv_train.DataPipe')
-@patch('loaders.import_pv_train.pd.read_csv')
-def test_import_pv_train_backfill_F(mock_read_csv, mock_datapipe, mock_env):
+@patch('loaders.import_pv_train.util_s3.read_csv_s3')
+def test_import_pv_train_backfill_F(mock_read_csv_s3, mock_datapipe, mock_env):
 
     # mock datapipe
     mock_instance = MagicMock()
@@ -76,7 +77,7 @@ def test_import_pv_train_backfill_F(mock_read_csv, mock_datapipe, mock_env):
         'TOTAL_TAP_IN_VOLUME': [1234, 5678],
         'TOTAL_TAP_OUT_VOLUME': [1234, 5678]
     })
-    mock_read_csv.return_value = mock_df
+    mock_read_csv_s3.return_value = mock_df
 
     # call function
     import_pv_train()
@@ -110,12 +111,24 @@ def test_import_pv_train_backfill_F(mock_read_csv, mock_datapipe, mock_env):
     transformed_YEAR_MONTH = mock_df['YEAR_MONTH']
     assert transformed_YEAR_MONTH.iloc[0] == '2025-12-01'
     assert transformed_YEAR_MONTH.iloc[1] == '2025-12-01'
-    mock_read_csv.assert_called_once()
+    mock_read_csv_s3.assert_called_once_with(
+        f'incoming/pv_train/csv/csv_name_{yyyymm}.csv',
+        delimiter=',',
+        dtype={
+            'YEAR_MONTH': 'str',
+            'DAY_TYPE': 'str',
+            'TIME_PER_HOUR': 'int64',
+            'PT_TYPE': 'str',
+            'PT_CODE': 'str',
+            'TOTAL_TAP_IN_VOLUME': 'int64',
+            'TOTAL_TAP_OUT_VOLUME': 'int64'
+        }
+    )
 
 
 @patch('loaders.import_pv_train.config_pv_train', {
     'backfill': True,
-    'csv_prefix': '/tmp/incoming/pv_train/csv',
+    'csv_prefix': 'incoming/pv_train/csv',
     'csv_name': 'csv_name',
     'yyyymm': '202501',
     'delimiter': ',',
@@ -144,8 +157,8 @@ def test_import_pv_train_backfill_F(mock_read_csv, mock_datapipe, mock_env):
     }
 })
 @patch('loaders.import_pv_train.DataPipe')
-@patch('loaders.import_pv_train.pd.read_csv')
-def test_import_pv_train_backfill_T(mock_read_csv, mock_datapipe, mock_env):
+@patch('loaders.import_pv_train.util_s3.read_csv_s3')
+def test_import_pv_train_backfill_T(mock_read_csv_s3, mock_datapipe, mock_env):
 
     # mock datapipe
     mock_instance = MagicMock()
@@ -161,7 +174,7 @@ def test_import_pv_train_backfill_T(mock_read_csv, mock_datapipe, mock_env):
         'TOTAL_TAP_IN_VOLUME': [1234, 5678],
         'TOTAL_TAP_OUT_VOLUME': [1234, 5678]
     })
-    mock_read_csv.return_value = mock_df
+    mock_read_csv_s3.return_value = mock_df
 
     # call function
     import_pv_train()
@@ -195,4 +208,16 @@ def test_import_pv_train_backfill_T(mock_read_csv, mock_datapipe, mock_env):
     transformed_YEAR_MONTH = mock_df['YEAR_MONTH']
     assert transformed_YEAR_MONTH.iloc[0] == '2025-01-01'
     assert transformed_YEAR_MONTH.iloc[1] == '2024-12-01'
-    mock_read_csv.assert_called_once()
+    mock_read_csv_s3.assert_called_once_with(
+        'incoming/pv_train/csv/csv_name_202501.csv',
+        delimiter=',',
+        dtype={
+            'YEAR_MONTH': 'str',
+            'DAY_TYPE': 'str',
+            'TIME_PER_HOUR': 'int64',
+            'PT_TYPE': 'str',
+            'PT_CODE': 'str',
+            'TOTAL_TAP_IN_VOLUME': 'int64',
+            'TOTAL_TAP_OUT_VOLUME': 'int64'
+        }
+    )

@@ -7,9 +7,17 @@ This is a private repository to set up and showcase a data pipeline and architec
   - Coupled with unit testing
     - With pytest and pylint
 - SQL dump into mariadb
-  - Hosting of mariadb-server on local linux env
+  - Hosting of mariadb-server in docker container
 - File upload to AWS s3
-  - File upload from local linux env to cloud storage
+  - File upload from container to cloud storage
 - Airflow schedule
-  - Hosting of airflow-server on local linux env
+  - Hosting of airflow-server on docker container
 - Error logging
+
+## Environment Variabes Required
+- Set up the env variables in .env for docker compose
+  - AWS
+  - LTA
+  - MariaDB
+
+<i>Some pytest scripts were drafted with the assistance of AI tools and reviewed by the author.</i>

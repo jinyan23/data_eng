@@ -28,7 +28,6 @@ def main():
     pv_train.unzip_to_incoming(
         config_pv_train['zip_prefix'],
         config_pv_train['csv_prefix'],
-        config_pv_train['arc_prefix'],
     )
 
     # step 3: load csv into mariadb
