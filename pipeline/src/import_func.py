@@ -66,8 +66,7 @@ class DataPipe:
             try:
                 cursor = connection.cursor()
                 cursor.execute(del_stmt)
-                logger.info(f"""TRUNCATE statement executed successfully for {tbl}."""
-                            )
+                logger.info(f"""TRUNCATE statement executed successfully for {tbl}.""")
             except Error as e:
                 logger.error(f'The error {e} occurred.')
                 raise
