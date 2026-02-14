@@ -1,24 +1,24 @@
-config_pv_train:
-    url_suffix: 'ltaodataservice/PV/Train'
+config_pv_bus:
+    url_suffix: 'ltaodataservice/PV/Bus'
     backfill: False
-    yyyymm: '202507'
-    zip_prefix: 'incoming/pv_train/zip'
-    csv_prefix: 'incoming/pv_train/csv'
-    csv_name: 'transport_node_train'
+    yyyymm: '202512'
+    zip_prefix: 'incoming/pv_bus/zip'
+    csv_prefix: 'incoming/pv_bus/csv'
+    csv_name: 'transport_node_bus'
     delimiter: ','
     mode: 'refresh'
     timekey: 'year_month'
     col_pd: {
         'YEAR_MONTH': 'str',
         'DAY_TYPE': 'str',
-        'TIME_PER_HOUR': 'int64',
+        'TIME_PER_HOUR': 'Int64',
         'PT_TYPE': 'str',
         'PT_CODE': 'str',
-        'TOTAL_TAP_IN_VOLUME': 'int64',
-        'TOTAL_TAP_OUT_VOLUME': 'int64'
+        'TOTAL_TAP_IN_VOLUME': 'Int64',
+        'TOTAL_TAP_OUT_VOLUME': 'Int64'
     }
 config_db_tbl:
-    tbl: 'r_pv_train'
+    tbl: 'r_pv_bus'
     tbl_col: {
         'YEAR_MONTH': 'year_month',
         'DAY_TYPE': 'day_type',
