@@ -12,17 +12,6 @@ services:
     - "3307:3306"
     volumes:
       - mariadb_data:/var/lib/mysql
-  
-  python_pipeline:
-    build: 
-      context: .
-      dockerfile: pipeline/Dockerfile
-    env_file:
-      - .env
-    container_name: pipeline
-    depends_on: 
-      - mariadb
-    command: ["python", "/pipeline/src/main.py"]
 
 # ---------------- AIRFLOW ---------------- #
 
@@ -34,16 +23,23 @@ services:
       - .env
     environment:
       AIRFLOW_HOME: /opt/airflow
+      AIRFLOW__CORE__DAGS_FOLDER: /opt/airflow/dags
       AIRFLOW__CORE__EXECUTOR: LocalExecutor
       AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: mysql+pymysql://${DB_USER}:${DB_PASS}@mariadb:3306/${DB_AIRFLOW}
       AIRFLOW__CORE__FERNET_KEY: ${FERNET_KEY}
       AIRFLOW__API__SECRET_KEY: ${AIRFLOW_API_SECRET_KEY}
       AIRFLOW__API_AUTH__JWT_SECRET: ${AIRFLOW_API_AUTH_JWT_SECRET}
       AIRFLOW__CORE__LOAD_EXAMPLES: 'false'
+      PYTHONPATH: /opt/airflow/pipeline/src
+      DB_HOST: mariadb
+      DB_PORT: 3306
+      AIRFLOW_EMAIL: ${AIRFLOW_EMAIL}
+      USER_EMAIL: ${USER_EMAIL}
     volumes:
       - ./airflow/dags:/opt/airflow/dags
       - airflow_logs:/opt/airflow/logs
       - ./airflow/plugins:/opt/airflow/plugins
+      - ./pipeline:/opt/airflow/pipeline
     ports:
       - "8080:8080"
     depends_on:
@@ -58,6 +54,7 @@ services:
       - .env
     environment:
       AIRFLOW_HOME: /opt/airflow
+      AIRFLOW__CORE__DAGS_FOLDER: /opt/airflow/dags
       AIRFLOW__CORE__EXECUTOR: LocalExecutor
       AIRFLOW__CORE__EXECUTION_API_SERVER_URL: http://airflow-api-server:8080/execution/
       AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: mysql+pymysql://${DB_USER}:${DB_PASS}@mariadb:3306/${DB_AIRFLOW}
@@ -65,10 +62,16 @@ services:
       AIRFLOW__API__SECRET_KEY: ${AIRFLOW_API_SECRET_KEY}
       AIRFLOW__API_AUTH__JWT_SECRET: ${AIRFLOW_API_AUTH_JWT_SECRET}
       AIRFLOW__CORE__LOAD_EXAMPLES: 'false'
+      PYTHONPATH: /opt/airflow/pipeline/src
+      DB_HOST: mariadb
+      DB_PORT: 3306
+      AIRFLOW_EMAIL: ${AIRFLOW_EMAIL}
+      USER_EMAIL: ${USER_EMAIL}
     volumes:
       - ./airflow/dags:/opt/airflow/dags
       - airflow_logs:/opt/airflow/logs
       - ./airflow/plugins:/opt/airflow/plugins
+      - ./pipeline:/opt/airflow/pipeline
     depends_on:
       - mariadb
       - airflow-api-server
@@ -82,16 +85,23 @@ services:
       - .env
     environment:
       AIRFLOW_HOME: /opt/airflow
+      AIRFLOW__CORE__DAGS_FOLDER: /opt/airflow/dags
       AIRFLOW__CORE__EXECUTOR: LocalExecutor
       AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: mysql+pymysql://${DB_USER}:${DB_PASS}@mariadb:3306/${DB_AIRFLOW}
       AIRFLOW__CORE__FERNET_KEY: ${FERNET_KEY}
       AIRFLOW__API__SECRET_KEY: ${AIRFLOW_API_SECRET_KEY}
       AIRFLOW__API_AUTH__JWT_SECRET: ${AIRFLOW_API_AUTH_JWT_SECRET}
       AIRFLOW__CORE__LOAD_EXAMPLES: 'false'
+      PYTHONPATH: /opt/airflow/pipeline/src
+      DB_HOST: mariadb
+      DB_PORT: 3306
+      AIRFLOW_EMAIL: ${AIRFLOW_EMAIL}
+      USER_EMAIL: ${USER_EMAIL}
     volumes:
       - ./airflow/dags:/opt/airflow/dags
       - airflow_logs:/opt/airflow/logs
       - ./airflow/plugins:/opt/airflow/plugins
+      - ./pipeline:/opt/airflow/pipeline
     depends_on:
       - mariadb
     command: dag-processor
