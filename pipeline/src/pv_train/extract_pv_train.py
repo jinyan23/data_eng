@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 
-import requests
 from datetime import datetime as dt
 import os
 from io import BytesIO
@@ -18,70 +17,13 @@ logger = ud_logger.create_logger()
 
 class PVTrain:
     '''
-    Create class to perform API call and download passenger volume by train
-    stations data from LTA DataMall
+    Create class to extract passenger volume by train data from monthly zip files.
     '''
 
     def __init__(self, date):
         self.date = date
         self.conf = util.load_config('config.yaml')
         self.conf_pvt = util.load_config('lta_pv_train.yaml')
-
-    def api_call(self):
-        '''
-        API call to LTA DataMall to get URL for the data.
-        '''
-
-        key = os.environ['LTA_KEY']
-
-        url = self.conf['api']['lta_url']
-        url_suffix = self.conf_pvt['config_pv_train']['url_suffix']
-
-        headers = {
-            'AccountKey': key,
-            'accept': 'application/json'
-        }
-
-        resp = requests.get(url + url_suffix,
-                            headers=headers,
-                            stream=True)
-
-        if resp.ok:
-            data = resp.json()
-            dl_link = data['value'][0]['Link']
-            logger.info(f'api call: {url_suffix}: {resp.status_code}')
-        else:
-            err = f'Error: {resp.status_code}, {resp.text}'
-            logger.error(f'{err}')
-            raise Exception(f'{err}')
-
-        return dl_link
-
-    def download_zip(self,
-                     dl_link: str,
-                     zip_dir: str):
-        '''
-        Download zip file from URL and upload directly to S3.
-
-        Parameters
-        ----------
-            dl_link: url link to the download
-            zip_dir: dir that stores the zip file
-        '''
-
-        yyyymmdd = dt.strftime(self.date, '%Y%m%d')
-        file_name = f'pv_train_{yyyymmdd}.zip'
-
-        zip_resp = requests.get(dl_link, stream=True)
-
-        if zip_resp.ok:
-            util_s3.upload_fileobj(zip_resp.raw,
-                                   f'{zip_dir}/{file_name}')
-            logger.info(f'Successfully wrote {file_name} to s3.')
-        else:
-            err = f'Error: {zip_resp.status_code}, {zip_resp.text}'
-            logger.error(f'{err}')
-            raise Exception(f'{err}')
 
     def unzip_to_incoming(self,
                           zip_dir: str,
@@ -95,13 +37,28 @@ class PVTrain:
             csv_dir: dir that stores the csv file
         '''
 
-        yyyymmdd = dt.strftime(self.date, '%Y%m%d')
+        yyyymm = dt.strftime(self.date, '%Y%m')
 
         try:
             bucket = os.environ.get('BUCKET')
             s3_client = boto3.client('s3')
 
-            zip_key = f'{zip_dir}/pv_train_{yyyymmdd}.zip'
+            # Resolve by month so files downloaded on different days still match.
+            zip_prefix = f'{zip_dir}/pv_train_{yyyymm}'
+            matches = []
+            paginator = s3_client.get_paginator('list_objects_v2')
+            for page in paginator.paginate(Bucket=bucket, Prefix=zip_prefix):
+                for obj in page.get('Contents', []):
+                    key = obj['Key']
+                    if key.endswith('.zip'):
+                        matches.append((obj['LastModified'], key))
+
+            if not matches:
+                err_msg = f'No zip files found for prefix s3://{bucket}/{zip_prefix}'
+                logger.error(err_msg)
+                raise FileNotFoundError(err_msg)
+
+            zip_key = max(matches, key=lambda x: x[0])[1]
             obj = s3_client.get_object(Bucket=bucket, Key=zip_key)
             zip_bytes = obj['Body'].read()
 
@@ -129,11 +86,8 @@ class PVTrain:
 if __name__ == "__main__":
 
     curr_date = dt.now().date()
-    # do api call to lta to get zip link
     pv_train = PVTrain(curr_date)
 
-    # print("Testing unzip_to_incoming()...")
-    yyyymmdd = dt.strftime(curr_date, '%Y%m%d')
     zip_prefix = 'incoming/pv_train/zip'
     csv_prefix = 'incoming/pv_train/csv'
     pv_train.unzip_to_incoming(zip_prefix, csv_prefix)

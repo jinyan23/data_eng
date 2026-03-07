@@ -19,11 +19,12 @@ class DataPipe:
     '''
     Create class to perform data import into systems
     '''
-    def __init__(self, hostname, username, password, database):
+    def __init__(self, hostname, username, password, database, port=3306):
         self.hostname = hostname
         self.username = username
         self.password = password
         self.database = database
+        self.port = port
 
     def create_connection(self):
         '''
@@ -33,6 +34,7 @@ class DataPipe:
         try:
             connection = mysql.connector.connect(
                 host=self.hostname,
+                port=self.port,
                 user=self.username,
                 password=self.password,
                 database=self.database
@@ -114,7 +116,8 @@ if __name__ == '__main__':
         hostname=os.environ['DB_HOST'],
         username=os.environ['DB_USER'],
         password=os.environ['DB_PASS'],
-        database=os.environ['DB_NAME']
+        database=os.environ['DB_NAME'],
+        port=os.environ['DB_PORT']
     )
 
     # sqlpipe.load_db()

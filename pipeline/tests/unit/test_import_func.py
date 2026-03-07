@@ -21,6 +21,7 @@ def test_create_connection_pass(mock_connect):
     assert connection == mock_connection
     mock_connect.assert_called_once_with(
         host='127.0.0.1',
+        port=3306,
         user='test_username',
         password='test_password',
         database='test_database'
