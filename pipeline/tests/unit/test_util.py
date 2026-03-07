@@ -1,85 +1,116 @@
 #!/usr/bin/env python3
 
-import zipfile
+from datetime import date
+from io import BytesIO
+from unittest.mock import MagicMock, patch
+
+import pytest
+
 import util
-from util import UDLogger
-
-ud_logger = UDLogger(filename='test.log', name=__name__)
-logger = ud_logger.create_logger()
+from util_logger import UDLogger
 
 
-def test_unzip_file(tmp_path):
-    '''
-    Perform unit test for util.unzip_file() function.
-    1) File to be successfully written into outgoing dir
-    2) Data present in the file can be read successfully
-    '''
+def test_safe_open_uses_root(monkeypatch, tmp_path):
+    monkeypatch.setattr(util, 'root', tmp_path)
 
-    # create a temp csv and zip file
-    test_name = 'test_unzip_file'
-    mock_data = '''col1, col2, col3'''
+    with util.safe_open('sample.txt', 'w') as handle:
+        handle.write('hello')
 
-    csv_path = tmp_path / f'{test_name}.csv'
-    zip_path = tmp_path / f'{test_name}.zip'
-    out_dir = tmp_path / 'outgoing'
-
-    with open(csv_path, 'w') as f:
-        f.write(mock_data)
-
-    with zipfile.ZipFile(zip_path, 'w') as f:
-        f.write(csv_path, arcname=f'{test_name}.csv')
-
-    # function to test
-    util.unzip_file(zip_path, out_dir, logger)
-
-    # check if file got successfully unzipped
-    extracted_path = out_dir / f'{test_name}.csv'
-    assert extracted_path.exists()
-    assert extracted_path.read_text() == mock_data
+    assert (tmp_path / 'sample.txt').read_text() == 'hello'
 
 
-def test_unzip_path_traversal(tmp_path):
-    '''
-    Perform unit test for path traversal malicious file catch.
-    1) Malicious file path e.g. '../malicious.txt' will return an exception
-    2) No file will be written out
-    '''
-    # create a temp malicious zip file
-    malicious_zip_path = tmp_path / 'malicious.zip'
-    out_dir = tmp_path / 'outgoing'
+def test_load_config_reads_from_config_folder(monkeypatch, tmp_path):
+    config_dir = tmp_path / 'config'
+    config_dir.mkdir()
+    (config_dir / 'sample.yaml').write_text('api:\n  key: value\n', encoding='utf-8')
+    monkeypatch.setattr(util, 'root', tmp_path)
 
-    with zipfile.ZipFile(malicious_zip_path, 'w') as zfile:
-        zfile.writestr('../malicious.txt', "malicious content")
+    config = util.load_config('sample.yaml')
 
-    # run and expect an Exception
-    try:
-        util.unzip_file(malicious_zip_path, out_dir, logger)
-    except Exception as e:
-        assert "Unsafe file detected" in str(e)
-
-    # ensure no files were extracted
-    extracted_files = list(out_dir.glob("**/*"))
-    assert len(extracted_files) == 0
+    assert config == {'api': {'key': 'value'}}
 
 
-def test_unzip_file_bad_zip(tmp_path):
-    '''
-    Perform unit test for invalid zip path.
-    1) Invalid zip file will return an exception
-    '''
-    bad_zip_path = tmp_path / "bad.zip"
-    bad_zip_path.write_text("invalid zip file")
-    try:
-        util.unzip_file(str(bad_zip_path), str(tmp_path), logger)
-    except Exception as e:
-        assert "not a valid zip file" in str(e)
+@patch('util.requests.get')
+@patch('util.load_config')
+def test_api_call_success(mock_load_config, mock_get, monkeypatch):
+    monkeypatch.setenv('LTA_KEY', 'api_token')
+    mock_load_config.return_value = {'api': {'lta_url': 'https://datamall2.mytransport.sg/'}}
+
+    mock_resp = MagicMock()
+    mock_resp.ok = True
+    mock_resp.status_code = 200
+    mock_resp.json.return_value = {'value': [{'Link': 'https://download-link'}]}
+    mock_get.return_value = mock_resp
+
+    conf = {'config_proc': {'url_suffix': 'ltaodataservice/PV/Bus'}}
+    dl_link = util.api_call(conf)
+
+    assert dl_link == 'https://download-link'
+    mock_get.assert_called_once_with(
+        'https://datamall2.mytransport.sg/ltaodataservice/PV/Bus',
+        headers={'AccountKey': 'api_token', 'accept': 'application/json'},
+        stream=True,
+    )
+
+
+@patch('util.requests.get')
+@patch('util.load_config')
+def test_api_call_failure(mock_load_config, mock_get, monkeypatch):
+    monkeypatch.setenv('LTA_KEY', 'api_token')
+    mock_load_config.return_value = {'api': {'lta_url': 'https://datamall2.mytransport.sg/'}}
+
+    mock_resp = MagicMock()
+    mock_resp.ok = False
+    mock_resp.status_code = 403
+    mock_resp.text = 'forbidden'
+    mock_get.return_value = mock_resp
+
+    conf = {'config_proc': {'url_suffix': 'ltaodataservice/PV/Train'}}
+
+    with pytest.raises(Exception, match='Error: 403'):
+        util.api_call(conf)
+
+
+@patch('util.util_s3.upload_fileobj')
+@patch('util.requests.get')
+def test_download_zip_success(mock_get, mock_upload):
+    mock_resp = MagicMock()
+    mock_resp.ok = True
+    mock_resp.raw = BytesIO(b'zip-bytes')
+    mock_get.return_value = mock_resp
+
+    util.download_zip(
+        curr_date=date(2026, 3, 7),
+        file_name='pv_bus',
+        dl_link='https://download-link',
+        zip_dir='incoming/pv_bus/zip',
+    )
+
+    mock_upload.assert_called_once_with(
+        mock_resp.raw,
+        'incoming/pv_bus/zip/pv_bus_20260307.zip',
+    )
+
+
+@patch('util.util_s3.upload_fileobj')
+@patch('util.requests.get')
+def test_download_zip_failure(mock_get, mock_upload):
+    mock_resp = MagicMock()
+    mock_resp.ok = False
+    mock_resp.status_code = 404
+    mock_resp.text = 'missing'
+    mock_get.return_value = mock_resp
+
+    with pytest.raises(Exception, match='Error: 404'):
+        util.download_zip(
+            curr_date=date(2026, 3, 7),
+            file_name='pv_train',
+            dl_link='https://download-link',
+            zip_dir='incoming/pv_train/zip',
+        )
+    mock_upload.assert_not_called()
 
 
 def test_udlogger_init():
-    '''
-    Perform unit test for user defined logger.
-    1) Able to instantiate UDLogger class object
-    '''
-    logger = UDLogger(filename='test.log',
-                      name='test_logger')
+    logger = UDLogger(filename='test.log', name='test_logger')
     assert logger.filename.endswith('test.log')

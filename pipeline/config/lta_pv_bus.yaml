@@ -1,7 +1,7 @@
-config_pv_bus:
+config_proc:
     url_suffix: 'ltaodataservice/PV/Bus'
     backfill: False
-    yyyymm: '202512'
+    yyyymm: '202601'
     zip_prefix: 'incoming/pv_bus/zip'
     csv_prefix: 'incoming/pv_bus/csv'
     csv_name: 'transport_node_bus'

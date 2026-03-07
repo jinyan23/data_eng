@@ -1,32 +1,32 @@
 #!/usr/bin/env python3
 
-import pandas as pd
-import pytest
-from unittest.mock import patch, MagicMock
 from datetime import datetime as dt
 from dateutil.relativedelta import relativedelta
+from unittest.mock import MagicMock, patch
 
-from loaders.import_pv_train import import_pv_train
+import numpy as np
+import pandas as pd
+import pytest
+
+from pv_train.import_pv_train import import_pv_train
 
 
 @pytest.fixture
 def mock_env(monkeypatch):
     env = {
         'DB_HOST': '127.0.0.1',
+        'DB_PORT': '3307',
         'DB_USER': 'test_username',
         'DB_PASS': 'test_password',
         'DB_NAME': 'test_database',
         'BUCKET': 'test-bucket',
-        'yyyymm': '202501',
-        'mode': 'refresh',
-        'timekey': 'year_month'
     }
     for k, v in env.items():
         monkeypatch.setenv(k, v)
     return env
 
 
-@patch('loaders.import_pv_train.config_pv_train', {
+@patch('pv_train.import_pv_train.config_pv', {
     'backfill': False,
     'csv_prefix': 'incoming/pv_train/csv',
     'csv_name': 'csv_name',
@@ -44,7 +44,7 @@ def mock_env(monkeypatch):
         'TOTAL_TAP_OUT_VOLUME': 'int64'
     }
 })
-@patch('loaders.import_pv_train.config_db_tbl', {
+@patch('pv_train.import_pv_train.config_db_tbl', {
     'tbl': 'r_pv_train',
     'tbl_col': {
         'YEAR_MONTH': 'year_month',
@@ -56,38 +56,32 @@ def mock_env(monkeypatch):
         'TOTAL_TAP_OUT_VOLUME': 'total_tap_out_volume'
     }
 })
-@patch('loaders.import_pv_train.DataPipe')
-@patch('loaders.import_pv_train.util_s3.read_csv_s3')
-def test_import_pv_train_backfill_F(mock_read_csv_s3, mock_datapipe, mock_env):
-
-    # mock datapipe
+@patch('pv_train.import_pv_train.DataPipe')
+@patch('pv_train.import_pv_train.util_s3.read_csv_s3')
+def test_import_pv_train_backfill_false(mock_read_csv_s3, mock_datapipe, mock_env):
     mock_instance = MagicMock()
     mock_datapipe.return_value = mock_instance
 
-    # mock current datetime
     yyyymm = dt.strftime(dt.now() - relativedelta(months=1), '%Y%m')
-
-    # mock csv data
     mock_df = pd.DataFrame({
         'YEAR_MONTH': ['2025-12', '2025-12'],
         'DAY_TYPE': ['WEEKDAY', 'WEEKENDS/HOLIDAY'],
         'TIME_PER_HOUR': [20, 13],
         'PT_TYPE': ['TRAIN_A', 'TRAIN_B'],
-        'PT_CODE': ['AB12', 'CD34'],
+        'PT_CODE': ['AB12', ''],
         'TOTAL_TAP_IN_VOLUME': [1234, 5678],
-        'TOTAL_TAP_OUT_VOLUME': [1234, 5678]
+        'TOTAL_TAP_OUT_VOLUME': [1234, np.nan]
     })
     mock_read_csv_s3.return_value = mock_df
 
-    # call function
     import_pv_train()
 
-    # assertion
     mock_datapipe.assert_called_once_with(
         hostname=mock_env['DB_HOST'],
         username=mock_env['DB_USER'],
         password=mock_env['DB_PASS'],
         database=mock_env['DB_NAME'],
+        port=mock_env['DB_PORT'],
     )
     mock_instance.load_db.assert_called_once_with(
         config_db={
@@ -105,12 +99,11 @@ def test_import_pv_train_backfill_F(mock_read_csv_s3, mock_datapipe, mock_env):
         mode='refresh',
         timekey='year_month',
         yyyymm=yyyymm,
-        data=[tuple(row) for row in mock_df.to_numpy()]
+        data=[
+            ('2025-12-01', 'WEEKDAY', 20, 'TRAIN_A', 'AB12', 1234, 1234.0),
+            ('2025-12-01', 'WEEKENDS/HOLIDAY', 13, 'TRAIN_B', None, 5678, None),
+        ]
     )
-
-    transformed_YEAR_MONTH = mock_df['YEAR_MONTH']
-    assert transformed_YEAR_MONTH.iloc[0] == '2025-12-01'
-    assert transformed_YEAR_MONTH.iloc[1] == '2025-12-01'
     mock_read_csv_s3.assert_called_once_with(
         f'incoming/pv_train/csv/csv_name_{yyyymm}.csv',
         delimiter=',',
@@ -122,11 +115,12 @@ def test_import_pv_train_backfill_F(mock_read_csv_s3, mock_datapipe, mock_env):
             'PT_CODE': 'str',
             'TOTAL_TAP_IN_VOLUME': 'int64',
             'TOTAL_TAP_OUT_VOLUME': 'int64'
-        }
+        },
+        keep_default_na=False
     )
 
 
-@patch('loaders.import_pv_train.config_pv_train', {
+@patch('pv_train.import_pv_train.config_pv', {
     'backfill': True,
     'csv_prefix': 'incoming/pv_train/csv',
     'csv_name': 'csv_name',
@@ -144,7 +138,7 @@ def test_import_pv_train_backfill_F(mock_read_csv_s3, mock_datapipe, mock_env):
         'TOTAL_TAP_OUT_VOLUME': 'int64'
     }
 })
-@patch('loaders.import_pv_train.config_db_tbl', {
+@patch('pv_train.import_pv_train.config_db_tbl', {
     'tbl': 'r_pv_train',
     'tbl_col': {
         'YEAR_MONTH': 'year_month',
@@ -156,15 +150,12 @@ def test_import_pv_train_backfill_F(mock_read_csv_s3, mock_datapipe, mock_env):
         'TOTAL_TAP_OUT_VOLUME': 'total_tap_out_volume'
     }
 })
-@patch('loaders.import_pv_train.DataPipe')
-@patch('loaders.import_pv_train.util_s3.read_csv_s3')
-def test_import_pv_train_backfill_T(mock_read_csv_s3, mock_datapipe, mock_env):
-
-    # mock datapipe
+@patch('pv_train.import_pv_train.DataPipe')
+@patch('pv_train.import_pv_train.util_s3.read_csv_s3')
+def test_import_pv_train_backfill_true(mock_read_csv_s3, mock_datapipe, mock_env):
     mock_instance = MagicMock()
     mock_datapipe.return_value = mock_instance
 
-    # mock csv data
     mock_df = pd.DataFrame({
         'YEAR_MONTH': ['2025-01', '2024-12'],
         'DAY_TYPE': ['WEEKDAY', 'WEEKENDS/HOLIDAY'],
@@ -176,15 +167,14 @@ def test_import_pv_train_backfill_T(mock_read_csv_s3, mock_datapipe, mock_env):
     })
     mock_read_csv_s3.return_value = mock_df
 
-    # call function
     import_pv_train()
 
-    # assertion
     mock_datapipe.assert_called_once_with(
         hostname=mock_env['DB_HOST'],
         username=mock_env['DB_USER'],
         password=mock_env['DB_PASS'],
         database=mock_env['DB_NAME'],
+        port=mock_env['DB_PORT'],
     )
     mock_instance.load_db.assert_called_once_with(
         config_db={
@@ -202,12 +192,11 @@ def test_import_pv_train_backfill_T(mock_read_csv_s3, mock_datapipe, mock_env):
         mode='refresh',
         timekey='year_month',
         yyyymm='202501',
-        data=[tuple(row) for row in mock_df.to_numpy()]
+        data=[
+            ('2025-01-01', 'WEEKDAY', 20, 'TRAIN_A', 'AB12', 1234, 1234),
+            ('2024-12-01', 'WEEKENDS/HOLIDAY', 13, 'TRAIN_B', 'CD34', 5678, 5678),
+        ]
     )
-
-    transformed_YEAR_MONTH = mock_df['YEAR_MONTH']
-    assert transformed_YEAR_MONTH.iloc[0] == '2025-01-01'
-    assert transformed_YEAR_MONTH.iloc[1] == '2024-12-01'
     mock_read_csv_s3.assert_called_once_with(
         'incoming/pv_train/csv/csv_name_202501.csv',
         delimiter=',',
@@ -219,5 +208,6 @@ def test_import_pv_train_backfill_T(mock_read_csv_s3, mock_datapipe, mock_env):
             'PT_CODE': 'str',
             'TOTAL_TAP_IN_VOLUME': 'int64',
             'TOTAL_TAP_OUT_VOLUME': 'int64'
-        }
+        },
+        keep_default_na=False
     )
