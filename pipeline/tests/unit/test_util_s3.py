@@ -93,3 +93,20 @@ def test_read_csv_s3(mock_client):
     assert isinstance(df, pd.DataFrame)
     assert list(df.columns) == ['col1', 'col2']
     assert df.iloc[0].tolist() == [1, 2]
+
+
+@patch('util_s3.boto3.client')
+def test_write_csv_s3(mock_client):
+    mock_s3 = MagicMock()
+    mock_client.return_value = mock_s3
+
+    df = pd.DataFrame({'col1': [1], 'col2': [2]})
+    result = util_s3.write_csv_s3(df, 'path/to/file.csv', index=False)
+
+    assert result is True
+    mock_s3.put_object.assert_called_once()
+    kwargs = mock_s3.put_object.call_args.kwargs
+    assert kwargs['Bucket'] == 'test-bucket'
+    assert kwargs['Key'] == 'path/to/file.csv'
+    assert 'col1,col2' in kwargs['Body']
+    assert '1,2' in kwargs['Body']

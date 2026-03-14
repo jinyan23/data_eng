@@ -18,6 +18,7 @@ config_proc:
         'TOTAL_TAP_OUT_VOLUME': 'Int64'
     }
 config_db_tbl:
+    schema: 'transport'
     tbl: 'r_pv_bus'
     tbl_col: {
         'YEAR_MONTH': 'year_month',

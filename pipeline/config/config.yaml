@@ -1,9 +1,11 @@
 api:
     lta_url: 'https://datamall2.mytransport.sg/'
+    data_gov_url: 'https://api-open.data.gov.sg/'
 
 incoming:
     pv_train: 'incoming/pv_train'
     pv_bus: 'incoming/pv_bus'
+    rainfall: 'incoming/rainfall'
     
 logs:
     import: '~/logs/import.log'

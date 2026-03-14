@@ -82,3 +82,28 @@ def read_csv_s3(object_name=None, **kwargs):
                      **kwargs)
 
     return df
+
+
+def write_csv_s3(df, object_name=None, **kwargs):
+    """
+    Write a pandas dataframe into a csv file in s3
+
+    Args:
+        df: pandas dataframe to write
+        object_name: S3 object name
+
+    Returns:
+        boolean: True if file was written, else False
+    """
+
+    client = boto3.client('s3')
+    bucket = os.environ.get('BUCKET')
+
+    csv_buffer = StringIO()
+    df.to_csv(csv_buffer, **kwargs)
+
+    client.put_object(Bucket=bucket,
+                      Key=object_name,
+                      Body=csv_buffer.getvalue())
+
+    return True

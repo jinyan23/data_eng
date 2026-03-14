@@ -60,7 +60,8 @@ class DataPipe:
         '''
 
         connection = self.create_connection()
-        tbl = f'{self.database}.{config_db["tbl"]}'
+        schema = config_db.get('schema', self.database)
+        tbl = f'{schema}.{config_db["tbl"]}'
 
         # perform deletion based on the mode (truncate / refresh)
         if mode == 'truncate':
