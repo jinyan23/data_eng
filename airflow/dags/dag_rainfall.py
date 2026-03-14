@@ -17,35 +17,25 @@ default_args = {
 }
 
 with DAG(
-    dag_id="pv_bus_pipeline",
+    dag_id="rainfall_pipeline",
     default_args=default_args,
-    description="Run PV Bus pipeline",
-    schedule="0 1 15 * *",
+    description="Run Rainfall pipeline",
+    schedule="0 */2 * * *",
     catchup=False,
 ) as dag:
     api_call = BashOperator(
         task_id="api_call",
-        bash_command="cd /opt/airflow/pipeline/src && python -m pv_bus.api_pv_bus",
+        bash_command="cd /opt/airflow/pipeline/src && python -m rainfall.api_rainfall",
     )
 
     wait_after_api = BashOperator(
-        task_id="wait_1h_after_api",
-        bash_command="sleep 3600",
-    )
-
-    extract = BashOperator(
-        task_id="extract",
-        bash_command="cd /opt/airflow/pipeline/src && python -m pv_bus.extract_pv_bus",
-    )
-
-    wait_after_extract = BashOperator(
-        task_id="wait_1h_after_extract",
-        bash_command="sleep 3600",
+        task_id="wait_5m_after_api",
+        bash_command="sleep 300",
     )
 
     data_import = BashOperator(
         task_id="import",
-        bash_command="cd /opt/airflow/pipeline/src && python -m pv_bus.import_pv_bus",
+        bash_command="cd /opt/airflow/pipeline/src && python -m rainfall.import_rainfall",
     )
 
-    api_call >> wait_after_api >> extract >> wait_after_extract >> data_import
+    api_call >> wait_after_api >> data_import

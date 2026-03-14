@@ -20,7 +20,7 @@ with DAG(
     dag_id="pv_train_pipeline",
     default_args=default_args,
     description="Run PV Train pipeline",
-    schedule="0 1 12 * *",
+    schedule="0 1 15 * *",
     catchup=False,
 ) as dag:
     api_call = BashOperator(

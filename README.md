@@ -8,7 +8,7 @@ This is a private repository to set up and showcase a data pipeline and architec
     - With pytest and pylint
 - SQL dump into mariadb
   - Hosting of mariadb-server in docker container
-- File upload to AWS s3
+- File upload to AWS S3
   - File upload from container to cloud storage
 - Airflow schedule
   - Hosting of airflow-server on docker container
@@ -19,5 +19,6 @@ This is a private repository to set up and showcase a data pipeline and architec
   - AWS
   - LTA
   - MariaDB
+  - Data Gov SG 
 
-<i>Some pytest scripts were drafted with the assistance of AI tools and reviewed by the author.</i>
+<i>Some scripts were drafted with the assistance of AI tools and reviewed by the author.</i>

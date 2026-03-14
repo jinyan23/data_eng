@@ -1,0 +1,30 @@
+config_proc:
+    url: 'https://api-open.data.gov.sg/v2/real-time/api/rainfall'
+    csv_prefix: 'incoming/rainfall'
+    csv_name: 'rainfall'
+    delimiter: '|'
+    mode: 'append'
+    timekey: 'timestamp'
+    col_pd: {
+        'timestamp': 'str',
+        'stationId': 'str',
+        'value': 'float64',
+        'id': 'str',
+        'deviceId': 'str',
+        'name': 'str',
+        'location.latitude': 'float64',
+        'location.longitude': 'float64'
+    }
+config_db_tbl:
+    schema: 'weather'
+    tbl: 'r_rainfall'
+    tbl_col: {
+        'timestamp': 'timestamp',
+        'stationId': 'station_id',
+        'value': 'value',
+        'id': 'nea_id',
+        'deviceId': 'device_id',
+        'name': 'name',
+        'location.latitude': 'loc_lat',
+        'location.longitude': 'loc_lon'
+    }
